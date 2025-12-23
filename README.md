@@ -159,6 +159,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/youtube" `
 ```
 
 - Notes on settings:
+
   - `download_quality`: 480p / 720p / 1080p; anything higher is clamped to 1080p.
   - `video_quality`: 480p / 720p / 1080p for rendered clips (capped at 1080p).
   - `video_format`: h264 / h265 / av1 / vp9; h264 is the safe default.

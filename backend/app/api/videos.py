@@ -77,14 +77,23 @@ def download_from_youtube(
     db: Session = Depends(get_db),
     x_prefer_gpu: str = Header(None),
 ):
-    """Download a video from YouTube and run the full pipeline."""
+    """Download a video from YouTube and run the full pipeline with custom clip settings."""
     video, job = download_youtube_video(request.url, db, request.title)
     prefer_gpu = x_prefer_gpu == "true" if x_prefer_gpu else None
+    
+    clip_settings = {
+        "min_duration": request.min_duration or 20.0,
+        "max_duration": request.max_duration or 60.0,
+        "min_engagement_score": request.min_engagement_score or 7,
+        "download_quality": request.download_quality or "1080p",
+        "video_quality": request.video_quality or "1080p",
+        "video_format": request.video_format or "h264",
+    }
 
     # Run pipeline in a separate NON-daemon thread so it persists
     thread = threading.Thread(
         target=_run_full_pipeline,
-        args=(video.id, job.id, None, prefer_gpu),
+        args=(video.id, job.id, None, prefer_gpu, clip_settings),
         daemon=False  # Critical: non-daemon so it completes even if request ends
     )
     thread.start()
@@ -96,14 +105,19 @@ def download_from_youtube(
     )
 
 
-@router.post("/process-upload", response_model=schemas.ProcessPipelineResponse)
+@router.post("/{video_id}/process-upload", response_model=schemas.ProcessPipelineResponse)
 def process_upload_full_pipeline(
     file: UploadFile = File(...),
     title: str | None = None,
+    min_duration: float = 20.0,
+    max_duration: float = 60.0,
+    min_engagement_score: int = 7,
+    video_quality: str = "1080p",
+    video_format: str = "h264",
     db: Session = Depends(get_db),
     x_prefer_gpu: str = Header(None),
 ):
-    """Upload a local video and run the full pipeline."""
+    """Upload a local video and run the full pipeline with custom clip settings."""
     video, ingest_job = register_video_with_job(db, file, title)
     try:
         save_upload_file(file, destination=Path(video.original_path))
@@ -111,11 +125,18 @@ def process_upload_full_pipeline(
         raise HTTPException(status_code=500, detail="Failed to save uploaded file")
     
     prefer_gpu = x_prefer_gpu == "true" if x_prefer_gpu else None
+    clip_settings = {
+        "min_duration": min_duration,
+        "max_duration": max_duration,
+        "min_engagement_score": min_engagement_score,
+        "video_quality": video_quality,
+        "video_format": video_format,
+    }
 
     # Run pipeline in a separate NON-daemon thread so it persists
     thread = threading.Thread(
         target=_run_full_pipeline,
-        args=(video.id, None, ingest_job.id, prefer_gpu),
+        args=(video.id, None, ingest_job.id, prefer_gpu, clip_settings),
         daemon=False  # Critical: non-daemon so it completes even if request ends
     )
     thread.start()
@@ -318,7 +339,7 @@ def process_youtube_full_pipeline(
     )
 
 
-def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id: str | None, prefer_gpu: bool | None = None):
+def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id: str | None, prefer_gpu: bool | None = None, clip_settings: dict | None = None):
     """Run the complete processing pipeline sequentially."""
     from app.core.db import SessionLocal
     from app.models.db_models import JobStatus
@@ -354,12 +375,20 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
     db = SessionLocal()
 
     try:
-        def run_with_retry(fn, job_id: str, job_name: str, attempts: int = 2) -> bool:
+        def run_with_retry(fn, job_id: str, job_name: str, attempts: int = 2, clip_settings: dict | None = None) -> bool:
             """Run a job function and check its result with a fresh database session."""
             for attempt in range(attempts):
                 try:
                     log_msg(f"Running {job_name} (attempt {attempt + 1}/{attempts}), job_id={job_id}")
-                    fn(job_id)
+                    if clip_settings:
+                        if job_name == "Clip Generation":
+                            fn(job_id, clip_settings)
+                        elif job_name == "YouTube Download":
+                            fn(job_id, clip_settings.get("download_quality", "1080p"))
+                        else:
+                            fn(job_id)
+                    else:
+                        fn(job_id)
                     
                     # Critical: Use a fresh session to check status
                     # Each service function creates its own session, so we need a fresh one to see their updates
@@ -461,7 +490,7 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
         db.refresh(generate_job)
         log_msg(f"  Created clip generation job: {generate_job.id}")
 
-        run_with_retry(process_clip_generation_job, generate_job.id, "Clip Generation")
+        run_with_retry(process_clip_generation_job, generate_job.id, "Clip Generation", clip_settings=clip_settings)
         log_msg(f"[PIPELINE COMPLETE] video_id={video_id}")
 
     except Exception as e:

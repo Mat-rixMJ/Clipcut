@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from app.models.db_models import JobStatus
 
@@ -9,6 +9,12 @@ from app.models.db_models import JobStatus
 class YouTubeDownloadRequest(BaseModel):
     url: str = Field(..., description="YouTube video URL")
     title: Optional[str] = Field(None, description="Optional custom title")
+    download_quality: Optional[str] = Field("1080p", description="Download quality: 480p, 720p, 1080p")
+    min_duration: Optional[float] = Field(20.0, description="Minimum clip duration in seconds")
+    max_duration: Optional[float] = Field(60.0, description="Maximum clip duration in seconds")
+    min_engagement_score: Optional[int] = Field(7, description="Minimum engagement score threshold (1-10)")
+    video_quality: Optional[str] = Field("1080p", description="Video quality: 480p, 720p, 1080p")
+    video_format: Optional[str] = Field("h264", description="Video codec: h264, h265, av1, vp9")
 
 
 class VideoCreateResponse(BaseModel):
@@ -39,11 +45,7 @@ class VideoDetail(BaseModel):
     raw_metadata: Optional[Any]
     analysis_data: Optional[Any]
 
-    class Config:
-        orm_mode = True
-
-        # For Pydantic v1 compatibility; pydantic v2 uses model_config.from_attributes
-        from_attributes = True  # type: ignore[attr-defined]
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobInfo(BaseModel):
@@ -56,8 +58,7 @@ class JobInfo(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClipDetail(BaseModel):
@@ -72,8 +73,7 @@ class ClipDetail(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VideoWithJobs(VideoDetail):

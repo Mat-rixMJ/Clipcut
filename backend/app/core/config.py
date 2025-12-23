@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     llm_model: str | None = Field(default=None, description="Model name for LLM scoring")
     openai_api_key: str | None = None
     ollama_base_url: str = "http://localhost:11434"
+    yt_cookies_browser: str | None = Field(default=None, description="Browser for yt-dlp --cookies-from-browser (e.g., 'chrome:Default', 'edge:Default', or None to disable)")
+    yt_cookies_file: Path | None = Field(default=None, description="Path to a cookies.txt file for yt-dlp --cookies")
+    yt_js_runtime: str | None = Field(default=None, description="JavaScript runtime for yt-dlp EJS (e.g., 'node', 'bun', 'deno')")
     
     # GPU Acceleration Settings
     whisper_device: str = Field(default="cpu", description="Whisper device: 'cpu' or 'cuda'")
@@ -25,14 +28,85 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure storage directories exist early so other modules can rely on them
+# ============================================================================
+# UNIFIED STORAGE STRUCTURE
+# ============================================================================
+# All media files are stored in a single location: settings.data_dir
+# 
+# Directory structure:
+#   D:\clipcut\data\
+#   ├── videos/              # Original downloaded/uploaded videos (input)
+#   ├── audio/               # Extracted audio from videos
+#   ├── renders/             # Final rendered clips (output, organized by video_id)
+#   │   └── {video_id}/      # Clips for specific video
+#   │       ├── clip_1_*.mp4
+#   │       ├── clip_2_*.mp4
+#   │       └── ...
+#   ├── transcripts/         # Metadata: transcription results (JSON)
+#   ├── heatmap/             # Metadata: engagement heatmap (JSON)
+#   └── artifacts/           # Legacy/temporary files (cleanup safe)
+#
+# IMPORTANT: Do NOT create separate storage under backend/ or other locations.
+# Everything uses settings.data_dir = D:\clipcut\data
+# ============================================================================
+
+# Ensure all storage directories exist
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 (settings.data_dir / "videos").mkdir(parents=True, exist_ok=True)
 (settings.data_dir / "audio").mkdir(parents=True, exist_ok=True)
-# Legacy artifacts directory
-(settings.data_dir / "artifacts").mkdir(parents=True, exist_ok=True)
-
-# New structured pipeline directories
+(settings.data_dir / "renders").mkdir(parents=True, exist_ok=True)
 (settings.data_dir / "transcripts").mkdir(parents=True, exist_ok=True)
 (settings.data_dir / "heatmap").mkdir(parents=True, exist_ok=True)
-(settings.data_dir / "renders").mkdir(parents=True, exist_ok=True)
+(settings.data_dir / "artifacts").mkdir(parents=True, exist_ok=True)
+
+# Helper properties for easy access to storage subdirectories
+class StoragePaths:
+    """Centralized storage path management."""
+    
+    @staticmethod
+    def videos_dir() -> Path:
+        """Original videos directory."""
+        return settings.data_dir / "videos"
+    
+    @staticmethod
+    def audio_dir() -> Path:
+        """Extracted audio directory."""
+        return settings.data_dir / "audio"
+    
+    @staticmethod
+    def renders_dir(video_id: str | None = None) -> Path:
+        """Rendered clips directory. If video_id provided, returns video-specific folder."""
+        renders = settings.data_dir / "renders"
+        if video_id:
+            return renders / str(video_id)
+        return renders
+    
+    @staticmethod
+    def transcripts_dir() -> Path:
+        """Transcription metadata directory."""
+        return settings.data_dir / "transcripts"
+    
+    @staticmethod
+    def heatmap_dir() -> Path:
+        """Heatmap metadata directory."""
+        return settings.data_dir / "heatmap"
+    
+    @staticmethod
+    def artifacts_dir() -> Path:
+        """Legacy/temporary files directory."""
+        return settings.data_dir / "artifacts"
+    
+    @staticmethod
+    def all_dirs() -> dict[str, Path]:
+        """Returns all storage directories as a dict."""
+        return {
+            "videos": StoragePaths.videos_dir(),
+            "audio": StoragePaths.audio_dir(),
+            "renders": StoragePaths.renders_dir(),
+            "transcripts": StoragePaths.transcripts_dir(),
+            "heatmap": StoragePaths.heatmap_dir(),
+            "artifacts": StoragePaths.artifacts_dir(),
+        }
+
+
+# Export for easy import: from app.core.config import StoragePaths

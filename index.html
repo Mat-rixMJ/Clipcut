@@ -255,13 +255,42 @@
 
     .job-row {
       display: grid;
-      grid-template-columns: 1fr 110px 130px;
-      gap: 10px;
-      align-items: center;
+      grid-template-columns: 1fr;
+      gap: 8px;
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid var(--border);
       background: rgba(255, 255, 255, 0.02);
+    }
+
+    .job-header {
+      display: grid;
+      grid-template-columns: 1fr 110px 100px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .job-progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      border: 1px solid rgba(53, 224, 161, 0.2);
+    }
+
+    .job-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, #5ce0ff 100%);
+      transition: width 0.3s ease;
+      box-shadow: 0 0 12px rgba(53, 224, 161, 0.5);
+    }
+
+    .job-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .chip {
@@ -371,6 +400,13 @@
           <input id="yt-url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required />
           <label for="yt-title">Optional title</label>
           <input id="yt-title" name="title" type="text" placeholder="Custom title (optional)" />
+          <label for="yt-download-quality">Download quality</label>
+          <select id="yt-download-quality" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:15px;">
+            <option value="480p">480P - Low (Fast)</option>
+            <option value="720p">720P - Medium</option>
+            <option value="1080p" selected>1080P - High (Default)</option>
+          </select>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:12px;">Quality to download from YouTube (max 1080P)</div>
           <button type="submit">Start Pipeline</button>
         </form>
         <div id="yt-error" class="error" style="display:none"></div>
@@ -389,6 +425,64 @@
         </form>
         <div id="upload-error" class="error" style="display:none"></div>
         <div id="upload-success" class="success" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h2>Clip Generation Settings</h2>
+          <p>Customize clip duration, format, and quality threshold.</p>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+        <div>
+          <label for="min-clip-duration">Minimum clip duration (sec)</label>
+          <input id="min-clip-duration" type="number" min="5" max="120" value="20" style="width:100%;" />
+          <div style="color:var(--muted);font-size:12px;margin-top:4px;">Shortest clip to generate</div>
+        </div>
+
+        <div>
+          <label for="max-clip-duration">Maximum clip duration (sec)</label>
+          <input id="max-clip-duration" type="number" min="5" max="180" value="60" style="width:100%;" />
+          <div style="color:var(--muted);font-size:12px;margin-top:4px;">Longest clip to generate</div>
+        </div>
+
+        <div>
+          <label for="min-engagement-score">Minimum engagement score</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="min-engagement-score" type="range" min="1" max="10" value="7" style="flex:1;" />
+            <span id="engagement-value" style="font-weight:700;color:var(--accent);min-width:30px;">7</span>
+          </div>
+          <div style="color:var(--muted);font-size:12px;margin-top:4px;">Only generate clips above this score</div>
+        </div>
+
+        <div>
+          <label for="video-quality">Video quality & resolution</label>
+          <select id="video-quality" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:15px;">
+            <option value="480p">480P - Low (Fast)</option>
+            <option value="720p">720P - Medium</option>
+            <option value="1080p" selected>1080P - High (Default)</option>
+          </select>
+          <div style="color:var(--muted);font-size:12px;margin-top:4px;">Output resolution (max 1080P)</div>
+        </div>
+
+        <div>
+          <label for="video-output-format">Video codec</label>
+          <select id="video-output-format" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:15px;">
+            <option value="h264">H.264 (MP4) - Best compatibility</option>
+            <option value="h265">H.265 (MP4) - Better compression</option>
+            <option value="av1">AV1 (MP4) - Highest quality</option>
+            <option value="vp9">VP9 (WebM) - Web optimized</option>
+          </select>
+          <div style="color:var(--muted);font-size:12px;margin-top:4px;">Video codec for output clips</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(53,224,161,0.08);border:1px solid rgba(53,224,161,0.3);">
+        <div style="font-weight:700;color:var(--accent);margin-bottom:6px;">📊 Summary</div>
+        <div style="color:var(--muted);font-size:13px;">Clips: <span id="settings-summary"></span></div>
       </div>
     </div>
 
@@ -454,6 +548,45 @@
     const gpuPill = document.getElementById("gpu-pill");
     let gpuPreferred = true;
 
+    // Clip generation settings
+    const minDurationInput = document.getElementById("min-clip-duration");
+    const maxDurationInput = document.getElementById("max-clip-duration");
+    const minScoreInput = document.getElementById("min-engagement-score");
+    const engagementValueDisplay = document.getElementById("engagement-value");
+    const videoQualityInput = document.getElementById("video-quality");
+    const videoFormatInput = document.getElementById("video-output-format");
+    const settingsSummary = document.getElementById("settings-summary");
+
+    function updateSettingsSummary() {
+      const minDur = minDurationInput.value;
+      const maxDur = maxDurationInput.value;
+      const minScore = minScoreInput.value;
+      const quality = videoQualityInput.value;
+      const format = videoFormatInput.value;
+      settingsSummary.textContent = `${minDur}-${maxDur}s, ${quality}, score ≥${minScore}/10, ${format.toUpperCase()}`;
+    }
+
+    minDurationInput.addEventListener("change", updateSettingsSummary);
+    maxDurationInput.addEventListener("change", updateSettingsSummary);
+    minScoreInput.addEventListener("input", () => {
+      engagementValueDisplay.textContent = minScoreInput.value;
+      updateSettingsSummary();
+    });
+    videoQualityInput.addEventListener("change", updateSettingsSummary);
+    videoFormatInput.addEventListener("change", updateSettingsSummary);
+
+    updateSettingsSummary();
+
+    function getClipSettings() {
+      return {
+        min_duration: parseInt(minDurationInput.value) || 20,
+        max_duration: parseInt(maxDurationInput.value) || 60,
+        min_engagement_score: parseInt(minScoreInput.value) || 7,
+        video_quality: videoQualityInput.value || "1080p",
+        video_format: videoFormatInput.value || "h264",
+      };
+    }
+
     function gpuHeaders() {
       return { "X-Prefer-GPU": gpuPreferred ? "true" : "false" };
     }
@@ -511,13 +644,24 @@
       sorted.forEach(job => {
         const row = document.createElement("div");
         row.className = "job-row";
+        const progressPct = job.progress ? Math.round(job.progress * 100) : 0;
+        const progressWidth = job.progress ? (job.progress * 100) : 0;
         row.innerHTML = `
-          <div>
-            <div style="font-weight:700;font-size:15px">${job.job_type}</div>
-            <div style="color:var(--muted);font-size:13px">${job.step || ""}</div>
+          <div class="job-header">
+            <div>
+              <div style="font-weight:700;font-size:15px">${job.job_type}</div>
+              <div style="color:var(--muted);font-size:13px">${job.step || "pending"}</div>
+            </div>
+            <div>${chip(job.status)}</div>
+            <div style="text-align:right;font-weight:700;color:var(--accent);">${progressPct}%</div>
           </div>
-          <div>${chip(job.status)}</div>
-          <div style="color:var(--muted);font-size:13px;">${job.progress ? Math.round(job.progress * 100) + "%" : ""}</div>
+          <div class="job-progress-bar">
+            <div class="job-progress-fill" style="width:${progressWidth}%"></div>
+          </div>
+          <div class="job-meta">
+            <span>${job.step ? job.step.replace(/_/g, ' ') : 'initializing'}</span>
+            <span>${job.error_message ? '⚠ ' + job.error_message : ''}</span>
+          </div>
         `;
         jobsEl.appendChild(row);
       });
@@ -584,14 +728,21 @@
       e.preventDefault();
       const url = document.getElementById("yt-url").value.trim();
       const title = document.getElementById("yt-title").value.trim();
+      const downloadQuality = document.getElementById("yt-download-quality").value;
       const errEl = document.getElementById("yt-error");
       const okEl = document.getElementById("yt-success");
       errEl.style.display = okEl.style.display = "none";
       try {
+        const clipSettings = getClipSettings();
         const res = await fetch(`${apiBase}/videos/process-youtube`, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...gpuHeaders() },
-          body: JSON.stringify({ url, title: title || null }),
+          body: JSON.stringify({ 
+            url, 
+            title: title || null,
+            download_quality: downloadQuality,
+            ...clipSettings 
+          }),
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
@@ -619,8 +770,14 @@
       const form = new FormData();
       form.append("file", fileInput.files[0]);
       if (title) form.append("title", title);
+      
+      const clipSettings = getClipSettings();
+      for (const [key, value] of Object.entries(clipSettings)) {
+        form.append(key, value);
+      }
+      
       try {
-        const res = await fetch(`${apiBase}/videos`, { method: "POST", body: form, headers: gpuHeaders() });
+        const res = await fetch(`${apiBase}/videos/process-upload`, { method: "POST", body: form, headers: gpuHeaders() });
         if (!res.ok) throw new Error(`Upload failed (${res.status})`);
         const data = await res.json();
         okEl.style.display = "block";
