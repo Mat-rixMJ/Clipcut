@@ -99,6 +99,56 @@
       letter-spacing: 0.2px;
     }
 
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+    }
+
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255, 255, 255, 0.12);
+      transition: 0.2s ease;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 4px;
+      bottom: 3px;
+      background-color: #fff;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      transition: 0.2s ease;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(120deg, var(--accent) 0%, #5ce0ff 50%, var(--accent-2) 100%);
+      border-color: rgba(53, 224, 161, 0.4);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -297,7 +347,19 @@
           <div class="tagline">Turn long-form into scroll-stopping shorts.</div>
         </div>
       </div>
-      <div class="pill" id="gpu-pill">GPU Ready</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="toggle">
+          <label class="switch">
+            <input type="checkbox" id="gpu-toggle" aria-label="Toggle GPU mode" />
+            <span class="slider"></span>
+          </label>
+          <div>
+            <div style="font-weight:700;font-size:14px;">GPU Mode</div>
+            <div id="gpu-toggle-hint" style="color:var(--muted);font-size:12px;">Prefer GPU when available</div>
+          </div>
+        </div>
+        <div class="pill" id="gpu-pill">GPU Ready</div>
+      </div>
     </header>
 
     <div class="grid">
@@ -386,6 +448,34 @@
     const currentVideoEl = document.getElementById("current-video");
     const currentMessageEl = document.getElementById("current-message");
     const clipsPill = document.getElementById("clips-pill");
+    const gpuToggle = document.getElementById("gpu-toggle");
+    const gpuHint = document.getElementById("gpu-toggle-hint");
+    const gpuPill = document.getElementById("gpu-pill");
+    let gpuPreferred = true;
+
+    function gpuHeaders() {
+      return { "X-Prefer-GPU": gpuPreferred ? "true" : "false" };
+    }
+
+    function syncGpuUI(enabled) {
+      gpuPreferred = !!enabled;
+      gpuToggle.checked = gpuPreferred;
+      gpuHint.textContent = gpuPreferred ? "Prefer GPU when available" : "Force CPU-friendly mode";
+      gpuPill.textContent = gpuPreferred ? "GPU Preferred" : "CPU Mode";
+      gpuPill.style.background = gpuPreferred ? "rgba(53, 224, 161, 0.12)" : "rgba(255, 255, 255, 0.06)";
+      gpuPill.style.color = gpuPreferred ? "var(--accent)" : "var(--muted)";
+      localStorage.setItem("gpu-preferred", gpuPreferred ? "true" : "false");
+    }
+
+    (function initGpuPref() {
+      const saved = localStorage.getItem("gpu-preferred");
+      const initial = saved === null ? true : saved === "true";
+      syncGpuUI(initial);
+    })();
+
+    gpuToggle.addEventListener("change", () => {
+      syncGpuUI(gpuToggle.checked);
+    });
 
     function fmtSec(sec) {
       if (!sec && sec !== 0) return "—";
@@ -461,7 +551,7 @@
       if (!videoId) return;
       try {
         statusError.style.display = "none";
-        const res = await fetch(`${apiBase}/videos/${videoId}`);
+        const res = await fetch(`${apiBase}/videos/${videoId}`, { headers: gpuHeaders() });
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         setVideoId(data.id);
@@ -493,7 +583,7 @@
       try {
         const res = await fetch(`${apiBase}/videos/process-youtube`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...gpuHeaders() },
           body: JSON.stringify({ url, title: title || null }),
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -523,7 +613,7 @@
       form.append("file", fileInput.files[0]);
       if (title) form.append("title", title);
       try {
-        const res = await fetch(`${apiBase}/videos`, { method: "POST", body: form });
+        const res = await fetch(`${apiBase}/videos`, { method: "POST", body: form, headers: gpuHeaders() });
         if (!res.ok) throw new Error(`Upload failed (${res.status})`);
         const data = await res.json();
         okEl.style.display = "block";
@@ -547,18 +637,15 @@
 
     // Initial health check to update GPU pill text
     (async () => {
-      const pill = document.getElementById("gpu-pill");
       try {
-        const res = await fetch("/health");
+        const res = await fetch("/health", { headers: gpuHeaders() });
         if (res.ok) {
-          pill.textContent = "API Online";
-          pill.style.background = "rgba(53, 224, 161, 0.12)";
-          pill.style.color = "var(--accent)";
+          gpuPill.textContent = gpuPreferred ? "GPU Preferred" : "CPU Mode";
         }
       } catch (e) {
-        pill.textContent = "Offline";
-        pill.style.background = "rgba(255, 107, 107, 0.15)";
-        pill.style.color = "var(--danger)";
+        gpuPill.textContent = "Offline";
+        gpuPill.style.background = "rgba(255, 107, 107, 0.15)";
+        gpuPill.style.color = "var(--danger)";
       }
     })();
   </script>

@@ -107,7 +107,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/health"
 ## Web UI
 
 - Start the server, then open `http://127.0.0.1:8000/` to launch the built-in frontend (served from `index.html`).
-- Features: YouTube pipeline kickoff, local upload, live job polling, and inline clip preview/download via `/api`.
+- Features: YouTube pipeline kickoff, local upload, live job polling, GPU/CPU preference toggle (client-side), and inline clip preview/download via `/api`.
 - The page auto-polls status every few seconds; paste any `video_id` to resume tracking.
 
 ---
