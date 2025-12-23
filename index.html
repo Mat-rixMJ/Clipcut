@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClipCut Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c1627;
+      --card: rgba(12, 22, 39, 0.7);
+      --panel: rgba(18, 32, 52, 0.85);
+      --text: #e6f0ff;
+      --muted: #9cb3d4;
+      --accent: #35e0a1;
+      --accent-2: #f3b43f;
+      --border: rgba(255, 255, 255, 0.08);
+      --danger: #ff6b6b;
+      --success: #4ade80;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      --blur: saturate(140%) blur(6px);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(53, 224, 161, 0.08), transparent 28%),
+                  radial-gradient(circle at 80% 10%, rgba(243, 180, 63, 0.08), transparent 32%),
+                  radial-gradient(circle at 40% 80%, rgba(93, 176, 255, 0.06), transparent 28%),
+                  linear-gradient(140deg, #0a1423 0%, #0b2034 60%, #061422 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 18px 48px;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: var(--blur);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent) 0%, #5ce0ff 50%, var(--accent-2) 100%);
+      box-shadow: 0 10px 25px rgba(53, 224, 161, 0.35);
+      display: grid;
+      place-items: center;
+      color: #0a1423;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: -0.3px;
+    }
+
+    .tagline {
+      margin: 4px 0 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(53, 224, 161, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(53, 224, 161, 0.4);
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: var(--blur);
+    }
+
+    h2 {
+      margin: 0 0 10px 0;
+      font-size: 20px;
+      letter-spacing: -0.2px;
+    }
+
+    p {
+      margin: 4px 0 10px 0;
+      color: var(--muted);
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    label {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    input[type="text"], input[type="file"], input[type="url"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      font-size: 15px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: rgba(53, 224, 161, 0.6);
+      box-shadow: 0 0 0 3px rgba(53, 224, 161, 0.16);
+    }
+
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(120deg, var(--accent) 0%, #5ce0ff 50%, var(--accent-2) 100%);
+      color: #0b1422;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 12px 28px rgba(53, 224, 161, 0.35);
+    }
+
+    button:hover { transform: translateY(-1px); box-shadow: 0 16px 34px rgba(53, 224, 161, 0.38); }
+    button:active { transform: translateY(0); }
+
+    .muted-btn {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid var(--border);
+    }
+
+    .status-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-label { color: var(--muted); font-size: 13px; }
+    .stat-value { font-size: 17px; font-weight: 700; }
+
+    .jobs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .job-row {
+      display: grid;
+      grid-template-columns: 1fr 110px 130px;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 13px;
+      width: fit-content;
+    }
+
+    .chip.pending { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+    .chip.running { background: rgba(53, 224, 161, 0.12); color: var(--accent); }
+    .chip.success { background: rgba(74, 222, 128, 0.14); color: var(--success); }
+    .chip.failed { background: rgba(255, 107, 107, 0.16); color: var(--danger); }
+
+    .clips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .clip-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .clip-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+
+    .clip-meta span { color: var(--muted); font-size: 13px; }
+
+    .pill-small {
+      padding: 6px 10px;
+      background: rgba(53, 224, 161, 0.14);
+      color: var(--accent);
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 12px;
+      border: 1px solid rgba(53, 224, 161, 0.35);
+    }
+
+    video {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #000;
+    }
+
+    .footer {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .error { color: var(--danger); font-weight: 700; }
+    .success { color: var(--success); font-weight: 700; }
+
+    @media (max-width: 680px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .job-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+      .job-row .chip { justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div class="logo">CC</div>
+        <div>
+          <h1>ClipCut Studio</h1>
+          <div class="tagline">Turn long-form into scroll-stopping shorts.</div>
+        </div>
+      </div>
+      <div class="pill" id="gpu-pill">GPU Ready</div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>YouTube to Clips</h2>
+        <p>Drop a YouTube link and let the full GPU-enabled pipeline run.</p>
+        <form id="youtube-form">
+          <label for="yt-url">YouTube URL</label>
+          <input id="yt-url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required />
+          <label for="yt-title">Optional title</label>
+          <input id="yt-title" name="title" type="text" placeholder="Custom title (optional)" />
+          <button type="submit">Start Pipeline</button>
+        </form>
+        <div id="yt-error" class="error" style="display:none"></div>
+        <div id="yt-success" class="success" style="display:none"></div>
+      </div>
+
+      <div class="card">
+        <h2>Upload a File</h2>
+        <p>Upload MP4/MOV and we will ingest, transcribe, analyze, and render clips.</p>
+        <form id="upload-form">
+          <label for="upload-file">Video file</label>
+          <input id="upload-file" name="file" type="file" accept="video/*" required />
+          <label for="upload-title">Optional title</label>
+          <input id="upload-title" name="title" type="text" placeholder="Custom title (optional)" />
+          <button type="submit">Upload & Run</button>
+        </form>
+        <div id="upload-error" class="error" style="display:none"></div>
+        <div id="upload-success" class="success" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h2>Live Status</h2>
+          <p>Track ingestion, transcription, analysis, and clip generation in real time.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <input id="video-id-input" type="text" placeholder="Paste an existing video_id" style="width:260px;" />
+          <button class="muted-btn" id="load-video-btn">Load Status</button>
+          <button class="muted-btn" id="stop-polling-btn">Pause Polling</button>
+        </div>
+      </div>
+
+      <div class="status-panel">
+        <div class="stat">
+          <div class="stat-label">Current video</div>
+          <div class="stat-value" id="current-video">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Pipeline message</div>
+          <div class="stat-value" id="current-message">Waiting…</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Clips generated</div>
+          <div class="stat-value" id="clips-count">0</div>
+        </div>
+      </div>
+
+      <div class="jobs" id="jobs"></div>
+      <div class="error" id="status-error" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div>
+          <h2>Clips</h2>
+          <p>Best segments ranked by engagement.</p>
+        </div>
+        <div class="pill" id="clips-pill">Waiting for clips…</div>
+      </div>
+      <div class="clips-grid" id="clips-grid"></div>
+    </div>
+
+    <div class="footer">API base: /api • Health check at /health • GPU + FFmpeg enabled</div>
+  </div>
+
+  <script>
+    const apiBase = "/api";
+    let pollHandle = null;
+    const jobsEl = document.getElementById("jobs");
+    const statusError = document.getElementById("status-error");
+    const clipsGrid = document.getElementById("clips-grid");
+    const clipsCountEl = document.getElementById("clips-count");
+    const currentVideoEl = document.getElementById("current-video");
+    const currentMessageEl = document.getElementById("current-message");
+    const clipsPill = document.getElementById("clips-pill");
+
+    function fmtSec(sec) {
+      if (!sec && sec !== 0) return "—";
+      const m = Math.floor(sec / 60);
+      const s = Math.round(sec % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function chip(status) {
+      const cls = {
+        PENDING: "pending",
+        RUNNING: "running",
+        SUCCESS: "success",
+        FAILED: "failed",
+      }[status] || "pending";
+      const label = status ? status.toUpperCase() : "PENDING";
+      return `<span class="chip ${cls}">${label}</span>`;
+    }
+
+    function setMessage(msg) {
+      currentMessageEl.textContent = msg;
+    }
+
+    function setVideoId(id) {
+      currentVideoEl.textContent = id || "—";
+      document.getElementById("video-id-input").value = id || "";
+    }
+
+    function renderJobs(jobs) {
+      jobsEl.innerHTML = "";
+      const sorted = [...jobs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      sorted.forEach(job => {
+        const row = document.createElement("div");
+        row.className = "job-row";
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700;font-size:15px">${job.job_type}</div>
+            <div style="color:var(--muted);font-size:13px">${job.step || ""}</div>
+          </div>
+          <div>${chip(job.status)}</div>
+          <div style="color:var(--muted);font-size:13px;">${job.progress ? Math.round(job.progress * 100) + "%" : ""}</div>
+        `;
+        jobsEl.appendChild(row);
+      });
+    }
+
+    function renderClips(clips) {
+      clipsGrid.innerHTML = "";
+      const sorted = [...clips].sort((a, b) => a.rank - b.rank);
+      clipsCountEl.textContent = sorted.length;
+      clipsPill.textContent = sorted.length ? `${sorted.length} clip(s) ready` : "Waiting for clips…";
+      if (!sorted.length) return;
+      sorted.forEach((clip) => {
+        const url = `${apiBase}/videos/clips/${clip.id}/download`;
+        const card = document.createElement("div");
+        card.className = "clip-card";
+        card.innerHTML = `
+          <div class="clip-meta">
+            <div>Rank #${clip.rank}</div>
+            <span>Score ${clip.engagement_score.toFixed(1)}</span>
+          </div>
+          <video src="${url}" controls playsinline></video>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="pill-small">${fmtSec(clip.start_time)} - ${fmtSec(clip.end_time)}</span>
+            <a href="${url}" download style="color:var(--accent);font-weight:700;">Download</a>
+          </div>
+        `;
+        clipsGrid.appendChild(card);
+      });
+    }
+
+    async function fetchStatus(videoId) {
+      if (!videoId) return;
+      try {
+        statusError.style.display = "none";
+        const res = await fetch(`${apiBase}/videos/${videoId}`);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        setVideoId(data.id);
+        setMessage(`Updated at ${new Date().toLocaleTimeString()}`);
+        renderJobs(data.jobs || []);
+        renderClips(data.clips || []);
+      } catch (err) {
+        statusError.style.display = "block";
+        statusError.textContent = `Failed to load status: ${err.message}`;
+      }
+    }
+
+    function startPolling(videoId) {
+      if (!videoId) return;
+      clearInterval(pollHandle);
+      setVideoId(videoId);
+      setMessage("Polling status…");
+      fetchStatus(videoId);
+      pollHandle = setInterval(() => fetchStatus(videoId), 6000);
+    }
+
+    document.getElementById("youtube-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const url = document.getElementById("yt-url").value.trim();
+      const title = document.getElementById("yt-title").value.trim();
+      const errEl = document.getElementById("yt-error");
+      const okEl = document.getElementById("yt-success");
+      errEl.style.display = okEl.style.display = "none";
+      try {
+        const res = await fetch(`${apiBase}/videos/process-youtube`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, title: title || null }),
+        });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        const data = await res.json();
+        okEl.style.display = "block";
+        okEl.textContent = data.message || "Started";
+        startPolling(data.video_id);
+      } catch (err) {
+        errEl.style.display = "block";
+        errEl.textContent = err.message;
+      }
+    });
+
+    document.getElementById("upload-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById("upload-file");
+      const title = document.getElementById("upload-title").value.trim();
+      const errEl = document.getElementById("upload-error");
+      const okEl = document.getElementById("upload-success");
+      errEl.style.display = okEl.style.display = "none";
+      if (!fileInput.files.length) {
+        errEl.style.display = "block";
+        errEl.textContent = "Please choose a video file.";
+        return;
+      }
+      const form = new FormData();
+      form.append("file", fileInput.files[0]);
+      if (title) form.append("title", title);
+      try {
+        const res = await fetch(`${apiBase}/videos`, { method: "POST", body: form });
+        if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+        const data = await res.json();
+        okEl.style.display = "block";
+        okEl.textContent = data.message || "Upload started";
+        startPolling(data.video_id);
+      } catch (err) {
+        errEl.style.display = "block";
+        errEl.textContent = err.message;
+      }
+    });
+
+    document.getElementById("load-video-btn").addEventListener("click", () => {
+      const vid = document.getElementById("video-id-input").value.trim();
+      if (vid) startPolling(vid);
+    });
+
+    document.getElementById("stop-polling-btn").addEventListener("click", () => {
+      clearInterval(pollHandle);
+      setMessage("Polling paused");
+    });
+
+    // Initial health check to update GPU pill text
+    (async () => {
+      const pill = document.getElementById("gpu-pill");
+      try {
+        const res = await fetch("/health");
+        if (res.ok) {
+          pill.textContent = "API Online";
+          pill.style.background = "rgba(53, 224, 161, 0.12)";
+          pill.style.color = "var(--accent)";
+        }
+      } catch (e) {
+        pill.textContent = "Offline";
+        pill.style.background = "rgba(255, 107, 107, 0.15)";
+        pill.style.color = "var(--danger)";
+      }
+    })();
+  </script>
+</body>
+</html>
