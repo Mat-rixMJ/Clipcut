@@ -402,6 +402,7 @@
           <input id="video-id-input" type="text" placeholder="Paste an existing video_id" style="width:260px;" />
           <button class="muted-btn" id="load-video-btn">Load Status</button>
           <button class="muted-btn" id="stop-polling-btn">Pause Polling</button>
+          <button class="muted-btn" id="stop-pipeline-btn" style="color:var(--danger);border-color:rgba(255,107,107,0.4);background:rgba(255,107,107,0.1);display:none;">⏹ Stop Pipeline</button>
         </div>
       </div>
 
@@ -570,6 +571,12 @@
       setVideoId(videoId);
       setMessage("Polling status…");
       fetchStatus(videoId);
+      // Show stop button when polling
+      const stopBtn = document.getElementById("stop-pipeline-btn");
+      stopBtn.style.display = "block";
+      stopBtn.disabled = false;
+      stopBtn.textContent = "⏹ Stop Pipeline";
+      stopBtn.style.color = "var(--danger)";
       pollHandle = setInterval(() => fetchStatus(videoId), 6000);
     }
 
@@ -633,6 +640,32 @@
     document.getElementById("stop-polling-btn").addEventListener("click", () => {
       clearInterval(pollHandle);
       setMessage("Polling paused");
+    });
+
+    document.getElementById("stop-pipeline-btn").addEventListener("click", async () => {
+      const vid = document.getElementById("video-id-input").value.trim();
+      if (!vid) return;
+      const btn = document.getElementById("stop-pipeline-btn");
+      btn.disabled = true;
+      btn.textContent = "Stopping...";
+      try {
+        const res = await fetch(`${apiBase}/videos/${vid}/stop`, {
+          method: "POST",
+          headers: gpuHeaders(),
+        });
+        if (res.ok) {
+          setMessage("Pipeline stopped by user");
+          btn.textContent = "✓ Stopped";
+          btn.style.color = "var(--success)";
+          clearInterval(pollHandle);
+        } else {
+          throw new Error(`Stop failed (${res.status})`);
+        }
+      } catch (err) {
+        alert(`Failed to stop pipeline: ${err.message}`);
+        btn.textContent = "⏹ Stop Pipeline";
+        btn.disabled = false;
+      }
     });
 
     // Initial health check to update GPU pill text

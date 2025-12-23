@@ -42,6 +42,35 @@ def get_video(video_id: str, db: Session = Depends(get_db)):
     return video
 
 
+@router.post("/{video_id}/stop")
+def stop_pipeline(video_id: str, db: Session = Depends(get_db)):
+    """Stop all running jobs for a video."""
+    from app.models.db_models import JobStatus
+    
+    video = db.query(Video).filter(Video.id == video_id).one_or_none()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Mark all pending/running jobs as failed with cancellation message
+    jobs = db.query(Job).filter(
+        Job.video_id == video_id,
+        Job.status.in_([JobStatus.PENDING, JobStatus.RUNNING])
+    ).all()
+    
+    for job in jobs:
+        job.status = JobStatus.FAILED
+        job.error_message = "Pipeline stopped by user"
+        job.updated_at = __import__("datetime").datetime.utcnow()
+    
+    db.commit()
+    
+    return {
+        "video_id": video_id,
+        "message": f"Stopped {len(jobs)} pending/running job(s)",
+        "jobs_stopped": len(jobs)
+    }
+
+
 @router.post("/youtube", response_model=schemas.ProcessPipelineResponse)
 def download_from_youtube(
     request: schemas.YouTubeDownloadRequest,
