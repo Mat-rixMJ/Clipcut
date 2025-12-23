@@ -91,23 +91,30 @@ Note on paths:
 
 ---
 
-## Run the Server
+## Run the Backend + Frontend
 
 ```powershell
-cd D:/clipcut/backend
-& ..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+cd D:/clipcut
+python -m venv .venv
+& .venv\Scripts\Activate.ps1
+
+# Optional: set env vars (adjust GPU/DB as needed)
+$env:PYTHONPATH = "D:/clipcut/backend"
+$env:DATABASE_URL = "sqlite:///D:/clipcut/db/app.db"
+$env:WHISPER_DEVICE = "cuda"      # or "cpu"
+$env:FFMPEG_HWACCEL = "cuda"      # or "d3d11va"/"dxva2"/"qsv"/""
+
+cd backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Health check:
-
-```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/health"
-```
+- Frontend: open http://127.0.0.1:8000/ (served from `index.html`).
+- Health: http://127.0.0.1:8000/health
 
 ## Web UI
 
-- Start the server, then open `http://127.0.0.1:8000/` to launch the built-in frontend (served from `index.html`).
-- Features: YouTube pipeline kickoff, local upload, live job polling, GPU/CPU preference toggle (client-side), and inline clip preview/download via `/api`.
+- Start/stop: use the toggle in the header to prefer GPU or force CPU; preference is sent as `X-Prefer-GPU` on requests.
+- Flows: YouTube pipeline kickoff, local upload, live job polling, inline clip preview/download via `/api`.
 - The page auto-polls status every few seconds; paste any `video_id` to resume tracking.
 
 ---
