@@ -9,10 +9,12 @@ End-to-end pipeline for turning long-form videos (YouTube URL or local upload) i
 - Unified pipeline for YouTube or local uploads
 - Idempotent, retry-capable stages (safe to re-run)
 - FastAPI API with job tracking and clip downloading
+- Web UI with live progress bars, GPU/CPU toggle, stop control, clip settings (duration/score/quality/codec), and YouTube download quality selector (capped at 1080p)
 - SQLite via SQLAlchemy ORM
 - GPU acceleration (optional): Whisper CUDA + FFmpeg NVDEC/D3D11VA
 - Robust monitoring: adaptive progress script with stage timings
 - Per-video clip folders with consistent naming
+- Hard 1080p ceiling for downloads and rendered clips (inputs can be higher; outputs and downloads are clamped to 1080p)
 
 ## Architecture
 
@@ -95,7 +97,6 @@ Note on paths:
 
 ```powershell
 cd D:/clipcut
-python -m venv .venv
 & .venv\Scripts\Activate.ps1
 
 # Optional: set env vars (adjust GPU/DB as needed)
@@ -111,11 +112,27 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 - Frontend: open http://127.0.0.1:8000/ (served from `index.html`).
 - Health: http://127.0.0.1:8000/health
 
+---
+
 ## Web UI
 
-- Start/stop: use the toggle in the header to prefer GPU or force CPU; preference is sent as `X-Prefer-GPU` on requests.
-- Flows: YouTube pipeline kickoff, local upload, live job polling, inline clip preview/download via `/api`.
-- The page auto-polls status every few seconds; paste any `video_id` to resume tracking.
+- Progress: live job progress bars with per-stage status and inline clip previews/downloads.
+- Controls: GPU/CPU preference toggle (sent as `X-Prefer-GPU`), Stop Pipeline button, and YouTube download kickoff.
+- Clip settings card (defaults shown in UI):
+  - Min/Max clip duration (s): default 20–60
+  - Min engagement score (1–10): default 7; adaptive fallback still applies downstream
+  - Output quality: 480p / 720p / 1080p (clamped to 1080p)
+  - Output codec: h264 / h265 / av1 / vp9
+  - YouTube download quality: 480p / 720p / 1080p (downloads are capped at 1080p)
+- Polling: the page auto-polls status every few seconds; paste any `video_id` to resume tracking.
+
+---
+
+## Clip Settings & Quality Caps
+
+- All requested qualities above 1080p are clamped to 1080p for both downloads (yt-dlp) and rendered clips (FFmpeg).
+- Defaults: `min_duration=20s`, `max_duration=60s`, `min_engagement_score=7`, `video_quality=1080p`, `video_format=h264`, `download_quality=1080p`.
+- Supported qualities: 480p, 720p, 1080p. Supported codecs: h264, h265, av1, vp9 (UI defaults to h264 for compatibility).
 
 ---
 
@@ -123,14 +140,29 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 Base URL: `http://127.0.0.1:8000/api`
 
-- Start full pipeline (YouTube):
+- Start full pipeline (YouTube) with clip settings and download quality:
 
 ```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/process-youtube" `
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/youtube" `
   -Method POST `
   -Headers @{"Content-Type"="application/json"} `
-  -Body '{"url":"https://www.youtube.com/watch?v=YOUR_VIDEO_ID"}'
+  -Body '{
+    "url": "https://www.youtube.com/watch?v=YOUR_VIDEO_ID",
+    "title": "Optional title",
+    "download_quality": "1080p",
+    "min_duration": 20.0,
+    "max_duration": 60.0,
+    "min_engagement_score": 7,
+    "video_quality": "1080p",
+    "video_format": "h264"
+  }'
 ```
+
+- Notes on settings:
+  - `download_quality`: 480p / 720p / 1080p; anything higher is clamped to 1080p.
+  - `video_quality`: 480p / 720p / 1080p for rendered clips (capped at 1080p).
+  - `video_format`: h264 / h265 / av1 / vp9; h264 is the safe default.
+  - `min_duration`, `max_duration`, `min_engagement_score`: control clip selection thresholds.
 
 - Upload and process local file:
 
@@ -145,6 +177,13 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos" `
 ```powershell
 $vid = "<video_id>"
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/$vid"
+```
+
+- Stop a running pipeline (marks pending/running jobs as failed with a cancellation message):
+
+```powershell
+$vid = "<video_id>"
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/$vid/stop" -Method POST
 ```
 
 - List clips for a video:
@@ -191,7 +230,7 @@ python scripts/check_gpu_setup.py
 Quick CUDA test:
 
 ```powershell
-& .venv\Scripts\python.exe scripts\test_cuda.py
+& .venv\Scripts\python.exe scripts/test_cuda.py
 ```
 
 Recommended configurations:
@@ -270,8 +309,8 @@ $env:FFMPEG_HWACCEL = "cuda"
 cd D:/clipcut/backend
 & ..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-# 4) Kick off a video
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/process-youtube" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"url":"https://www.youtube.com/watch?v=YOUR_VIDEO_ID"}'
+# 4) Kick off a YouTube video with clip settings and quality caps
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/videos/youtube" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"url":"https://www.youtube.com/watch?v=YOUR_VIDEO_ID","download_quality":"1080p","video_quality":"1080p","video_format":"h264","min_duration":20,"max_duration":60,"min_engagement_score":7}'
 
 # 5) Monitor
 python ..\scripts\monitor_pipeline.py <video_id>
