@@ -4,6 +4,19 @@ End-to-end pipeline for turning long-form videos (YouTube URL or local upload) i
 
 ---
 
+## One-Click Setup (Windows, PowerShell)
+
+- Open PowerShell (Run as Administrator recommended for winget/choco).
+- Allow script execution for this session: `Set-ExecutionPolicy -Scope Process Bypass -Force`
+- Run the bootstrap: `cd D:/clipcut; .\scripts\setup.ps1`
+  - Detects NVIDIA GPU; installs CUDA PyTorch if present, CPU wheels otherwise.
+  - Installs FFmpeg/FFprobe (winget/choco) if missing.
+  - Creates `.venv`, installs all deps, writes `.env.local`, and verifies imports.
+
+If you prefer manual setup, see below.
+
+---
+
 ## Features
 
 - Unified pipeline for YouTube or local uploads
@@ -48,6 +61,8 @@ ffprobe -version
 ---
 
 ## Setup (One-Time)
+
+If you ran the one-click script (`scripts/setup.ps1`), you can skip this section.
 
 Create and activate a virtual environment:
 
