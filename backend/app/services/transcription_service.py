@@ -16,7 +16,12 @@ def _load_whisper_model():
         ) from exc
 
     try:
-        device = settings.whisper_device
+        # Re-import settings to pick up env var changes from pipeline
+        from importlib import reload
+        from app.core import config
+        reload(config)
+        from app.core.config import settings as current_settings
+        device = current_settings.whisper_device
         return whisper.load_model("small", device=device)
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Failed to load Whisper model: {exc}") from exc
@@ -24,8 +29,13 @@ def _load_whisper_model():
 
 def _transcribe_audio(audio_path: Path) -> Dict[str, Any]:
     model = _load_whisper_model()
+    # Re-import settings to pick up env var changes
+    from importlib import reload
+    from app.core import config
+    reload(config)
+    from app.core.config import settings as current_settings
     # Enable FP16 for CUDA to speed up inference
-    fp16 = settings.whisper_device == "cuda"
+    fp16 = current_settings.whisper_device == "cuda"
     return model.transcribe(str(audio_path), verbose=False, fp16=fp16)
 
 

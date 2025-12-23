@@ -82,13 +82,17 @@ def _calculate_segment_energy(audio_path: Path, start: float, end: float) -> flo
 
 def detect_scene_changes(video_path: Path) -> List[float]:
     """Detect scene changes in the video (potential engagement points)."""
-    from app.core.config import settings
+    # Re-import settings to pick up env var changes from pipeline
+    from importlib import reload
+    from app.core import config
+    reload(config)
+    from app.core.config import settings as current_settings
     
     # Build ffmpeg command with optional hardware acceleration
     cmd = ["ffmpeg"]
     
     # Add hardware acceleration if configured
-    hwaccel = settings.ffmpeg_hwaccel
+    hwaccel = current_settings.ffmpeg_hwaccel
     if hwaccel:
         if hwaccel == "cuda":
             # NVIDIA CUDA acceleration with NVDEC

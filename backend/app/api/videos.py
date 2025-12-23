@@ -1,7 +1,7 @@
 from pathlib import Path
 import threading
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -46,14 +46,16 @@ def get_video(video_id: str, db: Session = Depends(get_db)):
 def download_from_youtube(
     request: schemas.YouTubeDownloadRequest,
     db: Session = Depends(get_db),
+    x_prefer_gpu: str = Header(None),
 ):
     """Download a video from YouTube and run the full pipeline."""
     video, job = download_youtube_video(request.url, db, request.title)
+    prefer_gpu = x_prefer_gpu == "true" if x_prefer_gpu else None
 
     # Run pipeline in a separate NON-daemon thread so it persists
     thread = threading.Thread(
         target=_run_full_pipeline,
-        args=(video.id, job.id, None),
+        args=(video.id, job.id, None, prefer_gpu),
         daemon=False  # Critical: non-daemon so it completes even if request ends
     )
     thread.start()
@@ -70,6 +72,7 @@ def process_upload_full_pipeline(
     file: UploadFile = File(...),
     title: str | None = None,
     db: Session = Depends(get_db),
+    x_prefer_gpu: str = Header(None),
 ):
     """Upload a local video and run the full pipeline."""
     video, ingest_job = register_video_with_job(db, file, title)
@@ -77,11 +80,13 @@ def process_upload_full_pipeline(
         save_upload_file(file, destination=Path(video.original_path))
     except Exception:  # noqa: BLE001
         raise HTTPException(status_code=500, detail="Failed to save uploaded file")
+    
+    prefer_gpu = x_prefer_gpu == "true" if x_prefer_gpu else None
 
     # Run pipeline in a separate NON-daemon thread so it persists
     thread = threading.Thread(
         target=_run_full_pipeline,
-        args=(video.id, None, ingest_job.id),
+        args=(video.id, None, ingest_job.id, prefer_gpu),
         daemon=False  # Critical: non-daemon so it completes even if request ends
     )
     thread.start()
@@ -230,6 +235,7 @@ def download_clip(clip_id: str, db: Session = Depends(get_db)):
 def reprocess_existing_video(
     video_id: str,
     db: Session = Depends(get_db),
+    x_prefer_gpu: str = Header(None),
 ):
     """
     Reprocess an existing video through the pipeline.
@@ -238,11 +244,13 @@ def reprocess_existing_video(
     video = db.query(Video).filter(Video.id == video_id).one_or_none()
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
+    
+    prefer_gpu = x_prefer_gpu == "true" if x_prefer_gpu else None
 
     # Run pipeline from ingest onwards (no download job)
     thread = threading.Thread(
         target=_run_full_pipeline,
-        args=(video.id, None, None),
+        args=(video.id, None, None, prefer_gpu),
         daemon=False
     )
     thread.start()
@@ -258,16 +266,18 @@ def reprocess_existing_video(
 def process_youtube_full_pipeline(
     request: schemas.YouTubeDownloadRequest,
     db: Session = Depends(get_db),
+    x_prefer_gpu: str = Header(None),
 ):
     """
     Complete pipeline: Download YouTube video -> Ingest -> Transcribe -> Analyze/Score -> Generate Clips
     """
     video, download_job = download_youtube_video(request.url, db, request.title)
+    prefer_gpu = x_prefer_gpu == "true" if x_prefer_gpu else None
 
     # Run pipeline in a separate NON-daemon thread so it persists
     thread = threading.Thread(
         target=_run_full_pipeline,
-        args=(video.id, download_job.id, None),
+        args=(video.id, download_job.id, None, prefer_gpu),
         daemon=False  # Critical: non-daemon so it completes even if request ends
     )
     thread.start()
@@ -279,7 +289,7 @@ def process_youtube_full_pipeline(
     )
 
 
-def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id: str | None):
+def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id: str | None, prefer_gpu: bool | None = None):
     """Run the complete processing pipeline sequentially."""
     from app.core.db import SessionLocal
     from app.models.db_models import JobStatus
@@ -287,9 +297,19 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
     import logging
     from pathlib import Path
     import time
+    import os
 
     logger = logging.getLogger(__name__)
     log_file = Path("D:/clipcut/pipeline.log")
+    
+    # Override GPU preference if specified by client
+    if prefer_gpu is not None:
+        if prefer_gpu:
+            os.environ["WHISPER_DEVICE"] = "cuda"
+            os.environ["FFMPEG_HWACCEL"] = "cuda"
+        else:
+            os.environ["WHISPER_DEVICE"] = "cpu"
+            os.environ["FFMPEG_HWACCEL"] = ""
     
     def log_msg(msg: str):
         """Write to both logger and file for visibility"""
@@ -300,7 +320,7 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
         except Exception:
             pass  # Don't let logging errors break the pipeline
 
-    log_msg(f"[PIPELINE START] video_id={video_id}, download_job_id={download_job_id}, ingest_job_id={ingest_job_id}")
+    log_msg(f"[PIPELINE START] video_id={video_id}, download_job_id={download_job_id}, ingest_job_id={ingest_job_id}, prefer_gpu={prefer_gpu}")
 
     db = SessionLocal()
 
