@@ -360,7 +360,7 @@ def process_clip_generation_job(job_id: str, clip_settings: dict | None = None) 
                 )
                 
                 # Use title from video or generate one
-                upload_title = f"{clip.video.title} - Clip {clip.rank} #Shorts"
+                upload_title = f"New MrBeast Video - {clip.video.title} - Clip {clip.rank} #Shorts"
                 if len(upload_title) > 100:
                     upload_title = upload_title[:97] + "..."
 
@@ -368,7 +368,7 @@ def process_clip_generation_job(job_id: str, clip_settings: dict | None = None) 
                     file_path=final_path,
                     title=upload_title,
                     description=description,
-                    tags=[t.strip("#") for t in hashtags.split() if t.strip()] + ["Shorts", "ClipCut"],
+                    tags=[t.strip("#") for t in hashtags.split() if t.strip()] + ["Shorts", "ClipCut", "MrBeast", "NewMrBeastVideo"],
                     privacy_status="private" # Default to private for safety
                 )
             except Exception as e:

@@ -1,62 +1,32 @@
-# ClipCut Backend Server Startup (PowerShell)
-# Activates .venv and starts the FastAPI backend on port 8001
-
-Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║           ClipCut Backend Server Startup Script             ║" -ForegroundColor Cyan
-Write-Host "║   [Features Enabled: AI Captions, Gemini, YouTube Upload]   ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
-Write-Host ""
+# ClipCut Backend Server Startup (Simplified)
+Write-Host "Starting ClipCut Backend Server..."
 
 # Check if .venv exists
 if (-not (Test-Path ".\.venv\Scripts\Activate.ps1")) {
-    Write-Host "✗ Virtual environment not found at .venv\" -ForegroundColor Red
-    Write-Host "Creating virtual environment..." -ForegroundColor Yellow
+    Write-Host "Virtual environment not found. Creating..."
     py -3.12 -m venv .venv
-    Write-Host "✓ Virtual environment created" -ForegroundColor Green
-    Write-Host ""
 }
 
 # Activate venv
-Write-Host "1️⃣  Activating virtual environment (.venv)..." -ForegroundColor Yellow
+Write-Host "Activating virtual environment..."
 & .\.venv\Scripts\Activate.ps1
-Write-Host "   ✓ Virtual environment activated" -ForegroundColor Green
-Write-Host ""
 
-# Check and install dependencies
-Write-Host "2️⃣  Checking & Installing dependencies..." -ForegroundColor Yellow
-if (Test-Path "backend\requirements.txt") {
-    pip install -r backend\requirements.txt | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "   ✓ Dependencies installed/verified" -ForegroundColor Green
-    } else {
-        Write-Host "   ✗ Dependency installation failed" -ForegroundColor Red
-    }
-}
-Write-Host ""
+# Create required directories (Clean on start)
+Write-Host "Setting up storage (Clearing previous data)..."
+if (Test-Path "data") { Remove-Item -Path "data" -Recurse -Force }
+if (Test-Path "db") { Remove-Item -Path "db" -Recurse -Force }
 
-# Create required directories (unified storage)
-Write-Host "3️⃣  Setting up unified storage..." -ForegroundColor Yellow
-@("data\videos", "data\audio", "data\renders", "data\artifacts", "data\transcripts", "data\heatmap", "db") | ForEach-Object {
+@("data/videos", "data/audio", "data/renders", "data/artifacts", "data/transcripts", "data/heatmap", "db") | ForEach-Object {
     if (-not (Test-Path $_)) { 
         New-Item -ItemType Directory -Path $_ -Force | Out-Null
-        Write-Host "   ✓ Created: $_" -ForegroundColor Green
     }
 }
-Write-Host ""
 
 # Set environment variables
-Write-Host "4️⃣  Setting environment variables..." -ForegroundColor Yellow
 $env:PYTHONPATH = "D:/clipcut/backend"
 $env:DATABASE_URL = "sqlite:///D:/clipcut/db/app.db"
-Write-Host "   ✓ PYTHONPATH=$env:PYTHONPATH" -ForegroundColor Green
-Write-Host "   ✓ DATABASE_URL=$env:DATABASE_URL" -ForegroundColor Green
-Write-Host ""
 
 # Start the backend
-Write-Host "5️⃣  Starting FastAPI backend..." -ForegroundColor Yellow
-Write-Host "   Press Ctrl+C to stop the server" -ForegroundColor Cyan
-Write-Host ""
-
+Write-Host "Starting FastAPI backend on port 8001..."
 cd backend
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --log-level info
-

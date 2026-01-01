@@ -501,6 +501,32 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
         import traceback
         log_msg(f"Full traceback:\n{traceback.format_exc()}")
     finally:
+        # User requested cleanup of raw files after completion
+        try:
+            db_cleanup = SessionLocal()
+            video = db_cleanup.query(Video).filter(Video.id == video_id).one_or_none()
+            if video:
+                # 1. Delete original video
+                if video.original_path and os.path.exists(video.original_path):
+                    log_msg(f"Cleanup: Deleting original video at {video.original_path}")
+                    os.remove(video.original_path)
+                
+                # 2. Delete extracted audio
+                if video.audio_path and os.path.exists(video.audio_path):
+                    log_msg(f"Cleanup: Deleting audio at {video.audio_path}")
+                    os.remove(video.audio_path)
+            
+            # 3. Delete intermediate files (transcripts/heatmaps if saved to disk)
+            for subdir in ["transcripts", "heatmap", "artifacts"]:
+                file_path = Path("D:/clipcut/data") / subdir / f"{video_id}.json"
+                if file_path.exists():
+                    log_msg(f"Cleanup: Deleting intermediate file {file_path}")
+                    os.remove(file_path)
+
+            db_cleanup.close()
+        except Exception as cleanup_err:
+            log_msg(f"Cleanup Error: {cleanup_err}")
+
         try:
             db.close()
         except Exception:

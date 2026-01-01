@@ -15,8 +15,10 @@ logger = logging.getLogger(__name__)
 
 # Scopes required for uploading
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
-CLIENT_SECRETS_FILE = Path("client_secrets.json")
-TOKEN_PICKLE_FILE = Path("token.pickle")
+# Get backend directory path
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+CLIENT_SECRETS_FILE = BACKEND_DIR / "client_secrets.json"
+TOKEN_PICKLE_FILE = BACKEND_DIR / "token.pickle"
 
 def get_authenticated_service():
     """
