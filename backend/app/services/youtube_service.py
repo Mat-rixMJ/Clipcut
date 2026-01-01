@@ -97,6 +97,9 @@ def process_youtube_download_job(job_id: str, download_quality: str = "1080p") -
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             # Prefer using a JS runtime if configured (avoids format extraction issues)
             *( ["--js-runtimes", settings.yt_js_runtime] if settings.yt_js_runtime else [] ),
+            "--extractor-args",
+            "youtube:player_client=android",
+            "--",
             video.source_url,
         ]
 
@@ -119,6 +122,17 @@ def process_youtube_download_job(job_id: str, download_quality: str = "1080p") -
         # Monitor download progress
         output_lines: list[str] = []
         for line in iter(process.stdout.readline, ""):
+            # Check for cancellation
+            if job.job_type == "youtube_download":  # Only check for download jobs
+                check_db = SessionLocal()
+                try:
+                    current_job = check_db.query(Job).filter(Job.id == job_id).one_or_none()
+                    if current_job and current_job.status == JobStatus.FAILED:
+                        process.kill()
+                        raise RuntimeError("Job cancelled by user")
+                finally:
+                    check_db.close()
+
             output_lines.append(line.rstrip())
             if "[download]" in line and "%" in line:
                 try:
@@ -137,6 +151,20 @@ def process_youtube_download_job(job_id: str, download_quality: str = "1080p") -
         process.wait()
         
         if process.returncode != 0:
+            # If we killed it, it might have a non-zero return code, but we raised RuntimeError already if cancelled ?? 
+            # Actually if we kill it, the loop breaks ?? No, readline returns empty string ?
+            # Wait, if I kill it, readline might return empty string or error.
+            # Let's ensure we catch the cancellation.
+            
+            # Re-check cancellation just in case it happened right before wait
+            check_db = SessionLocal()
+            try:
+                current_job = check_db.query(Job).filter(Job.id == job_id).one_or_none()
+                if current_job and current_job.status == JobStatus.FAILED:
+                     raise RuntimeError("Job cancelled by user")
+            finally:
+                check_db.close()
+
             tail = "\n".join(output_lines[-60:]) if output_lines else "(no output)"
             # Surface common guidance for bot/cookie issues
             if "Sign in to confirm you’re not a bot" in tail or "not a bot" in tail:
@@ -148,7 +176,7 @@ def process_youtube_download_job(job_id: str, download_quality: str = "1080p") -
         
         # Get video title from yt-dlp if not provided
         if video.title == "YouTube Video":
-            title_cmd = [sys.executable, "-m", "yt_dlp", "--get-title", video.source_url]
+            title_cmd = [sys.executable, "-m", "yt_dlp", "--get-title", "--", video.source_url]
             result = subprocess.run(title_cmd, capture_output=True, text=True)
             if result.returncode == 0:
                 video.title = result.stdout.strip()
@@ -160,8 +188,13 @@ def process_youtube_download_job(job_id: str, download_quality: str = "1080p") -
     except Exception as exc:
         job = db.query(Job).filter(Job.id == job_id).one_or_none()
         if job:
-            job.status = JobStatus.FAILED
-            job.error_message = str(exc)
-            db.commit()
+            # If it was already marked as FAILED by the stop command, we don't need to overwrite the error message if it's just "Job cancelled by user"
+            # But the stop command sets error message to "Pipeline stopped by user". 
+            # If we raise "Job cancelled by user", we might overwrite it. 
+            # Let's preserve the existing error message if it's already failed.
+            if job.status != JobStatus.FAILED:
+                job.status = JobStatus.FAILED
+                job.error_message = str(exc)
+                db.commit()
     finally:
         db.close()

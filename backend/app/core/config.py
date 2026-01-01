@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     llm_provider: str | None = Field(default=None, description="LLM provider: openai or ollama")
     llm_model: str | None = Field(default=None, description="Model name for LLM scoring")
     openai_api_key: str | None = None
+    google_api_key: str | None = None
     ollama_base_url: str = "http://localhost:11434"
     yt_cookies_browser: str | None = Field(default=None, description="Browser for yt-dlp --cookies-from-browser (e.g., 'chrome:Default', 'edge:Default', or None to disable)")
     yt_cookies_file: Path | None = Field(default=None, description="Path to a cookies.txt file for yt-dlp --cookies")
@@ -19,7 +20,12 @@ class Settings(BaseSettings):
     
     # GPU Acceleration Settings
     whisper_device: str = Field(default="cpu", description="Whisper device: 'cpu' or 'cuda'")
+    whisper_model: str = Field(default="small", description="Whisper model: 'base' or 'small'")
     ffmpeg_hwaccel: str = Field(default="", description="FFmpeg hardware acceleration: '', 'cuda', 'd3d11va', 'dxva2', 'qsv'")
+
+    # Notification Settings
+    telegram_bot_token: str | None = Field(default=None, description="Telegram Bot Token")
+    telegram_chat_id: str | None = Field(default=None, description="Telegram Chat ID")
 
     class Config:
         env_file = ".env"

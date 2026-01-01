@@ -1,0 +1,21 @@
+Failed Job ID: ecb7e720-2dc6-4862-a146-aac1ff64bf66
+Type: analysis
+Error Message: (sqlite3.OperationalError) no such column: clips.hashtags
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT clips.id AS clips_id, clips.video_id AS clips_video_id, clips.start_time AS clips_start_time, clips.end_time AS clips_end_time, clips.duration AS clips_duration, clips.engagement_score AS clips_engagement_score, clips.rank AS clips_rank, clips.hashtags AS clips_hashtags, clips.output_path AS clips_output_path, clips.created_at AS clips_created_at, clips.updated_at AS clips_updated_at 
+FROM clips 
+WHERE clips.video_id = ?) AS anon_1]
+[parameters: ('fc1f54be-67fc-440b-959f-458602c1a2ae',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Updated At: 2026-01-01 04:06:42.510527
+
+--- Latest Analysis Job ---
+Job ID: ecb7e720-2dc6-4862-a146-aac1ff64bf66
+Status: JobStatus.FAILED
+Error: (sqlite3.OperationalError) no such column: clips.hashtags
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT clips.id AS clips_id, clips.video_id AS clips_video_id, clips.start_time AS clips_start_time, clips.end_time AS clips_end_time, clips.duration AS clips_duration, clips.engagement_score AS clips_engagement_score, clips.rank AS clips_rank, clips.hashtags AS clips_hashtags, clips.output_path AS clips_output_path, clips.created_at AS clips_created_at, clips.updated_at AS clips_updated_at 
+FROM clips 
+WHERE clips.video_id = ?) AS anon_1]
+[parameters: ('fc1f54be-67fc-440b-959f-458602c1a2ae',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

@@ -478,6 +478,15 @@
           </select>
           <div style="color:var(--muted);font-size:12px;margin-top:4px;">Video codec for output clips</div>
         </div>
+
+        <div>
+          <label for="transcription-model">Processing model</label>
+          <select id="transcription-model" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:15px;">
+            <option value="base">Base - Faster processing</option>
+            <option value="small" selected>Small - Better accuracy</option>
+          </select>
+          <div style="color:var(--muted);font-size:12px;margin-top:4px;">Model for audio processing</div>
+        </div>
       </div>
 
       <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(53,224,161,0.08);border:1px solid rgba(53,224,161,0.3);">
@@ -555,6 +564,7 @@
     const engagementValueDisplay = document.getElementById("engagement-value");
     const videoQualityInput = document.getElementById("video-quality");
     const videoFormatInput = document.getElementById("video-output-format");
+    const transcriptionModelInput = document.getElementById("transcription-model");
     const settingsSummary = document.getElementById("settings-summary");
 
     function updateSettingsSummary() {
@@ -563,7 +573,8 @@
       const minScore = minScoreInput.value;
       const quality = videoQualityInput.value;
       const format = videoFormatInput.value;
-      settingsSummary.textContent = `${minDur}-${maxDur}s, ${quality}, score ≥${minScore}/10, ${format.toUpperCase()}`;
+      const model = transcriptionModelInput.value;
+      settingsSummary.textContent = `${minDur}-${maxDur}s, ${quality}, score ≥${minScore}/10, ${format.toUpperCase()}, ${model} model`;
     }
 
     minDurationInput.addEventListener("change", updateSettingsSummary);
@@ -574,6 +585,7 @@
     });
     videoQualityInput.addEventListener("change", updateSettingsSummary);
     videoFormatInput.addEventListener("change", updateSettingsSummary);
+    transcriptionModelInput.addEventListener("change", updateSettingsSummary);
 
     updateSettingsSummary();
 
@@ -584,6 +596,7 @@
         min_engagement_score: parseInt(minScoreInput.value) || 7,
         video_quality: videoQualityInput.value || "1080p",
         video_format: videoFormatInput.value || "h264",
+        transcription_model: transcriptionModelInput.value || "small",
       };
     }
 

@@ -61,6 +61,7 @@ class Clip(Base):
     duration = Column(Float, nullable=True)
     engagement_score = Column(Float, nullable=False)  # 1-10 score
     rank = Column(Integer, nullable=False)  # Ranking among clips (1 is best)
+    hashtags = Column(String, nullable=True)  # Hashtags for social media
     output_path = Column(String, nullable=True)  # Path to generated clip
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

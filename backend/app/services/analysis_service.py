@@ -12,7 +12,10 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.db import SessionLocal
 from app.models.db_models import Clip, Job, JobStatus, Video
+from app.models.db_models import Clip, Job, JobStatus, Video
 from app.services import scoring_service
+from app.services.scoring_service import generate_video_title
+
 
 logger = logging.getLogger(__name__)
 
@@ -323,6 +326,30 @@ def process_analysis_job(job_id: str) -> None:
         video_path = Path(video.original_path)
         audio_path = Path(video.audio_path)
         logger.info(f"[ANALYSIS] Video path: {video_path}, Audio path: {audio_path}")
+
+        # Check for transcript for auto-title and scoring
+        transcript_segments = None
+        if video.analysis_data and isinstance(video.analysis_data, dict):
+            transcript_segments = video.analysis_data.get("transcript")
+        
+        # Auto-Title: If title is generic and we have transcript, generate a new one
+        if transcript_segments and (
+            not video.title or 
+            video.title in ["YouTube Video", "video.mp4"] or 
+            video.title.startswith("video-") or
+            "download" in video.title.lower()
+        ):
+            logger.info("[ANALYSIS] Generic title detected. Generating auto-title...")
+            # Combine first 2 mins of text for title generation
+            transcript_text = " ".join([
+                t.get("text", "") for t in transcript_segments 
+                if t.get("end", 0) < 120
+            ])
+            new_title = generate_video_title(transcript_text)
+            if new_title:
+                logger.info(f"[ANALYSIS] New title generated: {new_title}")
+                video.title = new_title
+                db.commit()
         
         # Step 1: Analyze audio energy
         logger.info(f"[ANALYSIS] Step 1: Analyzing audio energy...")

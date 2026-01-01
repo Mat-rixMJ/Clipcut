@@ -6,15 +6,33 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from app.models.db_models import JobStatus
 
 
+from enum import Enum
+
+class VideoQuality(str, Enum):
+    q480p = "480p"
+    q720p = "720p"
+    q1080p = "1080p"
+
+class VideoFormat(str, Enum):
+    h264 = "h264"
+    h265 = "h265"
+    av1 = "av1"
+    vp9 = "vp9"
+
+class TranscriptionModel(str, Enum):
+    base = "base"
+    small = "small"
+
 class YouTubeDownloadRequest(BaseModel):
     url: str = Field(..., description="YouTube video URL")
     title: Optional[str] = Field(None, description="Optional custom title")
-    download_quality: Optional[str] = Field("1080p", description="Download quality: 480p, 720p, 1080p")
+    download_quality: Optional[VideoQuality] = Field(VideoQuality.q1080p, description="Download quality: 480p, 720p, 1080p")
     min_duration: Optional[float] = Field(20.0, description="Minimum clip duration in seconds")
     max_duration: Optional[float] = Field(60.0, description="Maximum clip duration in seconds")
     min_engagement_score: Optional[int] = Field(7, description="Minimum engagement score threshold (1-10)")
-    video_quality: Optional[str] = Field("1080p", description="Video quality: 480p, 720p, 1080p")
-    video_format: Optional[str] = Field("h264", description="Video codec: h264, h265, av1, vp9")
+    video_quality: Optional[VideoQuality] = Field(VideoQuality.q1080p, description="Video quality: 480p, 720p, 1080p")
+    video_format: Optional[VideoFormat] = Field(VideoFormat.h264, description="Video codec: h264, h265, av1, vp9")
+    transcription_model: Optional[TranscriptionModel] = Field(TranscriptionModel.small, description="Transcription model: base, small")
 
 
 class VideoCreateResponse(BaseModel):
@@ -69,6 +87,7 @@ class ClipDetail(BaseModel):
     duration: Optional[float]
     engagement_score: float
     rank: int
+    hashtags: Optional[str] = None
     output_path: Optional[str]
     created_at: datetime
     updated_at: datetime

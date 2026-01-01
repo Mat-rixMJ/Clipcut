@@ -11,7 +11,7 @@ from app.models.db_models import Job, JobStatus, Video
 logger = logging.getLogger(__name__)
 
 
-def _load_whisper_model():
+def _load_whisper_model(model_name: str = "small"):
     logger.info(f"[TRANSCRIPTION] Loading Whisper model...")
     try:
         import whisper  # type: ignore
@@ -24,19 +24,21 @@ def _load_whisper_model():
     try:
         # Read device from env var first, fallback to settings
         device = os.getenv("WHISPER_DEVICE", settings.whisper_device)
-        logger.info(f"[TRANSCRIPTION] Loading model 'small' on device='{device}'")
-        model = whisper.load_model("small", device=device)
+        # Read model from env var first, fallback to parameter, then settings
+        model = os.getenv("WHISPER_MODEL", model_name or settings.whisper_model)
+        logger.info(f"[TRANSCRIPTION] Loading model '{model}' on device='{device}'")
+        loaded_model = whisper.load_model(model, device=device)
         logger.info(f"[TRANSCRIPTION] Whisper model loaded successfully")
-        return model
+        return loaded_model
     except Exception as exc:  # noqa: BLE001
         logger.error(f"[TRANSCRIPTION] Failed to load Whisper model: {exc}", exc_info=True)
         raise RuntimeError(f"Failed to load Whisper model: {exc}") from exc
 
 
-def _transcribe_audio(audio_path: Path) -> Dict[str, Any]:
+def _transcribe_audio(audio_path: Path, model_name: str = "small") -> Dict[str, Any]:
     logger.info(f"[TRANSCRIPTION] Starting transcription of {audio_path}")
     try:
-        model = _load_whisper_model()
+        model = _load_whisper_model(model_name)
         # Read device from env var first, fallback to settings
         device = os.getenv("WHISPER_DEVICE", settings.whisper_device)
         # Enable FP16 for CUDA to speed up inference
@@ -67,9 +69,9 @@ def _serialize_segments(raw_segments: List[Dict[str, Any]]) -> List[Dict[str, An
     logger.info(f"[TRANSCRIPTION] Serialized {len(segments)} segments")
     return segments
 
-def process_transcription_job(job_id: str) -> None:
+def process_transcription_job(job_id: str, model_name: str = "small") -> None:
     """Background task to transcribe the ingested audio file."""
-    logger.info(f"[TRANSCRIPTION] Starting transcription job: {job_id}")
+    logger.info(f"[TRANSCRIPTION] Starting transcription job: {job_id}, model={model_name}")
     db = SessionLocal()
     try:
         job: Job | None = db.query(Job).filter(Job.id == job_id).one_or_none()
@@ -110,8 +112,8 @@ def process_transcription_job(job_id: str) -> None:
 
         logger.info(f"[TRANSCRIPTION] Audio file exists: {audio_path}, size={audio_path.stat().st_size} bytes")
         
-        logger.info(f"[TRANSCRIPTION] Calling _transcribe_audio()...")
-        result = _transcribe_audio(audio_path)
+        logger.info(f"[TRANSCRIPTION] Calling _transcribe_audio() with model={model_name}...")
+        result = _transcribe_audio(audio_path, model_name)
         
         logger.info(f"[TRANSCRIPTION] Transcribe result received, processing segments...")
         segments = _serialize_segments(result.get("segments", []))

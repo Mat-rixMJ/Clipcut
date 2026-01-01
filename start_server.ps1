@@ -3,6 +3,7 @@
 
 Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "║           ClipCut Backend Server Startup Script             ║" -ForegroundColor Cyan
+Write-Host "║   [Features Enabled: AI Captions, Gemini, YouTube Upload]   ║" -ForegroundColor Cyan
 Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
@@ -21,12 +22,14 @@ Write-Host "1️⃣  Activating virtual environment (.venv)..." -ForegroundColor
 Write-Host "   ✓ Virtual environment activated" -ForegroundColor Green
 Write-Host ""
 
-# Check and install dependencies if needed
-Write-Host "2️⃣  Checking dependencies..." -ForegroundColor Yellow
+# Check and install dependencies
+Write-Host "2️⃣  Checking & Installing dependencies..." -ForegroundColor Yellow
 if (Test-Path "backend\requirements.txt") {
-    pip list | Out-Null
+    pip install -r backend\requirements.txt | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "   ✓ Dependencies ready" -ForegroundColor Green
+        Write-Host "   ✓ Dependencies installed/verified" -ForegroundColor Green
+    } else {
+        Write-Host "   ✗ Dependency installation failed" -ForegroundColor Red
     }
 }
 Write-Host ""

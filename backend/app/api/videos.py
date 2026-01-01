@@ -88,6 +88,7 @@ def download_from_youtube(
         "download_quality": request.download_quality or "1080p",
         "video_quality": request.video_quality or "1080p",
         "video_format": request.video_format or "h264",
+        "transcription_model": request.transcription_model or "small",
     }
 
     # Run pipeline in a separate NON-daemon thread so it persists
@@ -385,6 +386,8 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
                             fn(job_id, clip_settings)
                         elif job_name == "YouTube Download":
                             fn(job_id, clip_settings.get("download_quality", "1080p"))
+                        elif job_name == "Transcription":
+                            fn(job_id, clip_settings.get("transcription_model", "small"))
                         else:
                             fn(job_id)
                     else:
@@ -452,7 +455,7 @@ def _run_full_pipeline(video_id: str, download_job_id: str | None, ingest_job_id
         db.refresh(transcription_job)
         log_msg(f"  Created transcription job: {transcription_job.id}")
 
-        if not run_with_retry(process_transcription_job, transcription_job.id, "Transcription"):
+        if not run_with_retry(process_transcription_job, transcription_job.id, "Transcription", clip_settings=clip_settings):
             log_msg("PIPELINE STOPPED: Transcription failed")
             return
 

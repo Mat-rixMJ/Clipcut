@@ -54,3 +54,10 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+# YouTube Credentials
+client_secrets.json
+token.pickle
+backend/client_secrets.json
+backend/token.pickle
+

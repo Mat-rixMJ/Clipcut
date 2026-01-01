@@ -1,0 +1,29 @@
+--- Tables ---
+- videos
+- jobs
+- clips
+
+--- Columns in 'clips' ---
+(0, 'id', 'VARCHAR', 1, None, 1)
+(1, 'video_id', 'VARCHAR', 1, None, 0)
+(2, 'start_time', 'FLOAT', 1, None, 0)
+(3, 'end_time', 'FLOAT', 1, None, 0)
+(4, 'duration', 'FLOAT', 0, None, 0)
+(5, 'engagement_score', 'FLOAT', 1, None, 0)
+(6, 'rank', 'INTEGER', 1, None, 0)
+(7, 'output_path', 'VARCHAR', 0, None, 0)
+(8, 'created_at', 'DATETIME', 1, None, 0)
+(9, 'updated_at', 'DATETIME', 1, None, 0)
+
+--- Columns in 'videos' ---
+(0, 'id', 'VARCHAR', 1, None, 1)
+(1, 'title', 'VARCHAR', 0, None, 0)
+(2, 'original_path', 'VARCHAR', 1, None, 0)
+(3, 'audio_path', 'VARCHAR', 0, None, 0)
+(4, 'source_url', 'VARCHAR', 0, None, 0)
+(5, 'duration_seconds', 'FLOAT', 0, None, 0)
+(6, 'fps', 'FLOAT', 0, None, 0)
+(7, 'raw_metadata', 'JSON', 0, None, 0)
+(8, 'analysis_data', 'JSON', 0, None, 0)
+(9, 'created_at', 'DATETIME', 1, None, 0)
+(10, 'updated_at', 'DATETIME', 1, None, 0)
